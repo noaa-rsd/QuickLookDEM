@@ -82,32 +82,7 @@ class QuickLook:
         p.join()
 
 
-def set_gdal_env():
-    qchecker_path = os.path.dirname(os.path.realpath(__file__))
-    os.chdir(qchecker_path)
-    user_dir = os.path.expanduser('~')
-
-    script_path = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 
-                                          'anaconda3', 'Scripts')
-
-    gdal_data = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 
-                                        'anaconda3', 'envs', 'QuickLook', 
-                                        'Library', 'share', 'gdal')
-
-    proj_lib =Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 
-                                      'anaconda3', 'envs', 'QuickLook', 
-                                      'Library', 'share')
-
-    if script_path.name not in os.environ["PATH"]:
-        os.environ["PATH"] += os.pathsep + str(script_path)
-
-    os.environ["GDAL_DATA"] = str(gdal_data)
-    os.environ["PROJ_LIB"] = str(proj_lib)
-
-
 def main():
-
-    # set_gdal_env()  probably can't use right now, 'cause it relies on specific conda environment
 
     las_dir = Path(r'V:\FL1703\LIDAR\Classified_LAS')
     las_paths = list(las_dir.glob('*.las'))
