@@ -43,6 +43,11 @@ class QuickLook:
         las_str = str(las_path).replace('\\', '/')
         gtiff_path = Path(str(las_path).replace('.las', '_QL.tif'))
         gtiff_path = str(gtiff_path).replace('\\', '/')
+        #"limits": "Classification[2:2],Classification[26:26]"
+        #{
+        #    "type":"filters.range",
+        #    "limits": "Classification[1:100]"
+        #},
         pdal_json = """{
             "pipeline":[
                 {
@@ -54,14 +59,10 @@ class QuickLook:
                     "groups":"last,only"
                 },
                 {
-                    "type":"filters.range",
-                    "limits": "Classification[2:2],Classification[26:26]"
-                },
-                {
                     "filename": """ + '"{}"'.format(gtiff_path) + """,
                     "gdaldriver": "GTiff",
                     "output_type": "mean",
-                    "resolution": "1.0",
+                    "resolution": "2.0",
                     "type": "writers.gdal"
                 }
             ]
@@ -109,7 +110,7 @@ def main():
 
     # set_gdal_env()  probably can't use right now, 'cause it relies on specific conda environment
 
-    las_dir = Path(r'V:\FL1703\LIDAR\Classified_LAS')
+    las_dir = Path(r'Y:\2019\20190621_FLL_calib_no_dbc_p\06_RIEGL_PROC\04_EXPORT\GR\02_20190621_FLL_calib_g_gpsa_rf_ip_r_no_dbc')
     las_paths = list(las_dir.glob('*.las'))
     num_las_paths = len(list(las_paths))
 
