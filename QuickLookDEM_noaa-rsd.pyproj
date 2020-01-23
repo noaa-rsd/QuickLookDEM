@@ -5,14 +5,14 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{3031ed4e-5d8f-4cde-976a-882c138934c9}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>QuickLookDEM.py</StartupFile>
+    <StartupFile>QuickLook.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <InterpreterId>CondaEnv|CondaEnv|quicklook</InterpreterId>
+    <InterpreterId>CondaEnv|CondaEnv|las_gridder</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
@@ -21,11 +21,10 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="QuickLookDEM.py" />
+    <Compile Include="QuickLook.py" />
   </ItemGroup>
   <ItemGroup>
-    <InterpreterReference Include="CondaEnv|CondaEnv|QuickLook" />
-    <InterpreterReference Include="CondaEnv|CondaEnv|quicklook" />
+    <InterpreterReference Include="CondaEnv|CondaEnv|las_gridder" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
