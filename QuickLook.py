@@ -11,7 +11,7 @@ class QuickLook:
 
     def __init__(self, out_dir):
         self.out_meta = None
-        self.out_dir = Path(r'C:\QAQC_contract\TPU_Gridder')
+        self.out_dir = out_dir
 
     def get_tile_dems(self, mtype):
         print(f'retreiving individual {mtype} grids...')
@@ -48,85 +48,49 @@ class QuickLook:
 
         las_str = str(las_path).replace('\\', '/')
 
-        gtiff_path_dem = self.out_dir / las_path.name.replace('.las', '_DEM.tif')
-        gtiff_path_dem = str(gtiff_path_dem).replace('\\', '/')
-
-        gtiff_path_thu = self.out_dir / las_path.name.replace('.las', '_THU.tif')
-        gtiff_path_thu = str(gtiff_path_thu).replace('\\', '/')
-
-        gtiff_path_tvu = self.out_dir / las_path.name.replace('.las', '_TVU.tif')
-        gtiff_path_tvu = str(gtiff_path_tvu).replace('\\', '/')
-
-        ##"limits": "Classification[2:2],Classification[26:26]"
-        ##{
-        ##    "type":"filters.range",
-        ##    "limits": "Classification[1:100]"
-        ##},
-
-        #pdal_json = """{
-        #    "pipeline":[
-        #        {
-        #            "type": "readers.las",
-        #            "filename": """ + '"{}"'.format(las_str) + """
-        #        },
-        #        {
-        #            "type":"filters.returns",
-        #            "groups":"last,only"
-        #        },
-        #        {
-        #            "filename": """ + '"{}"'.format(gtiff_path_dem) + """,
-        #            "gdaldriver": "GTiff",
-        #            "output_type": "mean",
-        #            "resolution": "2.0",
-        #            "type": "writers.gdal"
-        #        }
-        #    ]
-        #}"""
-        
-        pdal_json_tpu = """{
-            "pipeline":[
-                {
-                    "type": "readers.las",
-                    "filename": """ + '"{}"'.format(las_str) + """,
-                    "extra_dims": "total_thu=uint8,total_tvu=uint8",
-                    "use_eb_vlr": "true"
-                },
-                {
-                    "type":"filters.range",
-                    "limits": "Classification[26:26]"
-                },
-                {
-                    "filename": """ + '"{}"'.format(gtiff_path_thu) + """,
-                    "dimension": "total_thu",
-                    "gdaldriver": "GTiff",
-                    "output_type": "mean",
-                    "resolution": "1.0",
-                    "type": "writers.gdal"
-                },
-                {
-                    "filename": """ + '"{}"'.format(gtiff_path_tvu) + """,
-                    "dimension": "total_tvu",
-                    "gdaldriver": "GTiff",
-                    "output_type": "mean",
-                    "resolution": "1.0",
-                    "type": "writers.gdal"
-                },
-                {
-                    "filename": """ + '"{}"'.format(gtiff_path_dem) + """,
-                    "gdaldriver": "GTiff",
-                    "output_type": "mean",
-                    "resolution": "1.0",
-                    "type": "writers.gdal"
-                }
+        extra_bytes = [
+            'total_thu', 
+            'total_tvu', 
+            'subaer_thu',
+            'subaer_tvu',
+            'subaqu_thu',
+            'subaqu_tvu'
             ]
-        }"""
 
-        try:
-            pipeline = pdal.Pipeline(pdal_json_tpu)
-            __ = pipeline.execute()
-            print(pipeline.arrays['total_thu'])
-        except Exception as e:
-            print(e)
+        for eb in extra_bytes:
+
+            gtiff_path = self.out_dir / las_path.name.replace('.las', f'_{eb}.tif')
+            gtiff_path = str(gtiff_path).replace('\\', '/')
+       
+            pdal_json = """{
+                "pipeline":[
+                    {
+                        "type": "readers.las",
+                        "filename": """ + '"{}"'.format(las_str) + """,
+                        "extra_dims": """ + '"{}=uint8"'.format(eb) + """,
+                        "use_eb_vlr": "true"
+                    },
+                    {
+                        "type":"filters.range",
+                        "limits": "Classification[26:26]"
+                    },
+                    {
+                        "filename": """ + '"{}"'.format(gtiff_path) + """,
+                        "dimension": """ + '"{}"'.format(eb) + """,
+                        "gdaldriver": "GTiff",
+                        "output_type": "mean",
+                        "resolution": "1.0",
+                        "type": "writers.gdal"
+                    }
+                ]
+            }"""
+
+            try:
+                pipeline = pdal.Pipeline(pdal_json)
+                __ = pipeline.execute()
+                print(pipeline.arrays['total_thu'])
+            except Exception as e:
+                print(e)
 
     def gen_mean_z_surface_multiprocess(self, las_paths):
         p = pp.ProcessPool(4)
@@ -158,18 +122,21 @@ def main():
 
     set_env_vars('shore_att')
 
-    las_dir = Path(r'T:\2017\MD1702-TB-N_Jeromes_Creek_p\06_RIEGL_PROC\04_EXPORT\Green\04_MD1702-TB-N_g_gpsa_rf_ip_wsf_r_adj_cls_fnl_tpu')
+    las_dir = Path(r'C:\QAQC_contract\marco_island\tpu_output')
     las_paths = list(las_dir.glob('*.las'))
 
-    out_dir = Path(r'C:\QAQC_contract\TPU_Gridder')
+    out_dir = las_dir
 
     ql = QuickLook(out_dir)
-    #ql.gen_mean_z_surface_multiprocess(las_paths)
+    ql.gen_mean_z_surface_multiprocess(las_paths)
 
-    ql.gen_mosaic('DEM')
-    ql.gen_mosaic('THU')
-    ql.gen_mosaic('TVU')
-        
+    ql.gen_mosaic('total_thu')
+    ql.gen_mosaic('total_tvu')
+    ql.gen_mosaic('subaer_thu')
+    ql.gen_mosaic('subaer_tvu')
+    ql.gen_mosaic('subaqu_thu')
+    ql.gen_mosaic('subaqu_tvu')
+
 
 if __name__ == '__main__':
     main()
