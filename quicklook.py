@@ -1,5 +1,7 @@
 import os
+import subprocess
 import json
+import numpy as np
 from datetime import datetime
 import multiprocessing as mp
 from functools import partial
@@ -7,10 +9,10 @@ from pathlib import Path
 import rasterio
 import rasterio.merge
 from rasterio.io import MemoryFile
+from rasterio.crs import CRS
 import PySimpleGUI as sg
 from PySimpleGUI import OneLineProgressMeter as progress
-#import pathos
-#import pathos.pools as pp
+
 
 os.environ["PYTHONUNBUFFERED"] = "1"
 
@@ -21,32 +23,66 @@ PROC_NAME = "{}_{}".format(mp.current_process().name, os.getpid())
 
 class QuickLook:
 
-    def __init__(self):
+    def __init__(self, val_to_grid):
+        self.val_to_grid = val_to_grid
         self.profile = None
 
     @staticmethod
     def create_src(v):
         memfile = MemoryFile()
         src = memfile.open(**v[0])
-        print(src.crs)
         src.write(v[1])
         return src
 
-    def gen_mosaic(self, dem_dir, quick_look_path, vrts):
+    @staticmethod
+    def get_las_info(las_path):
+
+        def run_console_cmd(cmd):
+            process = subprocess.Popen(cmd.split(' '), shell=False, 
+                                       stdout=subprocess.PIPE, 
+                                       stderr=subprocess.DEVNULL)
+            output, error = process.communicate()
+            returncode = process.poll()
+            return returncode, output
+
+        las = str(las_path).replace('\\', '/')
+        cmd_str = 'pdal info {} --metadata'.format(las)
+        metadata = run_console_cmd(cmd_str)[1].decode('utf-8')
+        meta_dict = json.loads(metadata)
+        srs = meta_dict['metadata']['srs']
+        hor_wkt = srs['horizontal']
+
+        major_version = meta_dict['metadata']['major_version']
+        minor_version = meta_dict['metadata']['minor_version']
+        las_version = f'{major_version}.{minor_version}'
+
+        crs_init = None
+        try:
+            crs = CRS.from_string(hor_wkt)
+            crs_init = crs.to_dict()['init']
+        except Exception as e:
+            print(f'{las_path.name} {e}')
+        print(f'{las_path.name} {crs_init}')
+        return crs_init, las_version
+
+    def gen_mosaic(self, dem_dir, mosaic_path, vrts):
         if vrts:
-            print('generating {}...'.format(quick_look_path))
+            print('generating {}...'.format(mosaic_path))
             mosaic, out_trans = rasterio.merge.merge(vrts)
             self.profile = vrts[0].profile
             self.profile.update({
+                'dtype': rasterio.uint8,
                 'nodata': 0,
                 'driver': "GTiff",
                 'height': mosaic.shape[1],
                 'width': mosaic.shape[2],
                 'transform': out_trans})
             print(self.profile)
+            mosaic = np.where(mosaic == -9999, 0, mosaic)
+            print(mosaic)
             try:
-                with rasterio.open(quick_look_path, 'w', **self.profile) as dest:
-                    dest.write(mosaic)
+                with rasterio.open(mosaic_path, 'w', **self.profile) as dest:
+                    dest.write(mosaic.astype(rasterio.uint8))
             except Exception as e:
                 print(e)
             finally:
@@ -55,11 +91,19 @@ class QuickLook:
         else:
             print('No DEM tiles were generated.')
 
-    def create_surface(self, shared_dict, val_to_grid, bathy_class, las_path):
+    def create_surface(self, shared_dict, las_path):
         # TODO: Expose pipeline parameters in GUI
         import pdal
         from pathlib import Path
 
+        crs_init, las_version = self.get_las_info(las_path)
+
+        bathy_classes = {
+            '1.2': 26,
+            '1.4': 40
+            }
+
+        bathy_class = bathy_classes[las_version]
         las_str = str(las_path).replace('\\', '/')
         vrt_tiff = f"/vsimem/{las_path.stem}.tif"
         pdal_json = f"""{{
@@ -75,7 +119,7 @@ class QuickLook:
                 {{
                     "filename": "{vrt_tiff}",
                     "gdaldriver": "GTiff",
-                    "output_type": "{val_to_grid}",
+                    "output_type": "{self.val_to_grid}",
                     "resolution": "1.0",
                     "type": "writers.gdal"
                 }}
@@ -85,32 +129,30 @@ class QuickLook:
         try:
             pipeline = pdal.Pipeline(pdal_json)
             __ = pipeline.execute()
-            with rasterio.open(vrt_tiff) as src:
+            with rasterio.open(vrt_tiff, crs=crs_init) as src:
                 data = src.read()
                 profile = src.profile
             shared_dict[vrt_tiff] = [profile, data]
         except Exception as e:
             print(e)
 
-    def create_surface_multiprocess(self, las_paths, num_las, 
-                                        val_to_grid, bathy_class):
+    def create_surface_multiprocess(self, las_paths, num_las):
         shared_dict = mp.Manager().dict()
         p = mp.Pool(int(PROC_CNT / 2))
 
         # Initialize progress bar so that it shows from onset
-        progress('Gen Mean Z', 0, num_las, "pbar")
-        func = partial(self.create_surface, shared_dict, 
-                       val_to_grid, bathy_class)
+        progress(f'Generating {self.val_to_grid} raster', 0, num_las, "pbar")
+        func = partial(self.create_surface, shared_dict)
         for i, __ in enumerate(p.imap(func, las_paths)):
             time_stamp = datetime.now().isoformat()
             print("{}: {} / {}".format(time_stamp, i + 1, num_las))
-            msg_str = f'Generating {val_to_grid} raster'
+            msg_str = f'Generating {self.val_to_grid} raster'
             progress(msg_str, i + 1, num_las, "pbar")
 
         return p, shared_dict
 
 
-def create_quicklook(dir, val_to_grid, bathy_class):
+def create_quicklook(dir, val_to_grid):
     las_dir = Path(dir)
     las_paths = list(las_dir.glob('*.las'))
     num_las = len(list(las_paths))
@@ -118,9 +160,8 @@ def create_quicklook(dir, val_to_grid, bathy_class):
         print("No las files found")
         exit(1)
 
-    ql = QuickLook()
-    p, p_dict = ql.create_surface_multiprocess(las_paths, num_las, val_to_grid, 
-                                               bathy_class)
+    ql = QuickLook(val_to_grid)
+    p, p_dict = ql.create_surface_multiprocess(las_paths, num_las)
     p.close()
     p.join()
 
@@ -131,18 +172,16 @@ def create_quicklook(dir, val_to_grid, bathy_class):
 
 
 def create_gui():
-    val_to_grid = ['mean', 'count']
+    vals_to_grid = ['mean', 'count']
     bathy_classs = [26, 40]
 
     layout = [
         [sg.Output(size=(140, 20))],
-        [sg.Text('Las directory:', size=(12,1)), 
+        [sg.Text('Las directory:', size=(12, 1)), 
          sg.In(key='las_dir'), 
          sg.FolderBrowse()],
         [sg.Text('Value to Grid'), 
-         sg.Combo(val_to_grid, key='val_to_grid')],
-        [sg.Text('Bathymetry Class'), 
-         sg.Combo(bathy_classs, key='bathy_class')],
+         sg.Combo(vals_to_grid, key='val_to_grid')],
         [sg.Button('Create QLDEM')],
         [sg.Button('EXIT')]
         ]
@@ -166,8 +205,7 @@ if __name__ == '__main__':
             print(value['las_dir'])
             if os.path.isdir(value['las_dir']):
                 create_quicklook(value['las_dir'],
-                                 value['val_to_grid'], 
-                                 value['bathy_class'])
+                                 value['val_to_grid'])
             else:
                 print("'{}' is not a valid directory".format(value['las_dir']))
     window.Close()

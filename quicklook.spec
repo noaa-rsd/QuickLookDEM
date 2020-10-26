@@ -2,11 +2,52 @@
 
 block_cipher = None
 
-a = Analysis(['quicklook.py'],
-             pathex=['C:\\Users\\Nick.Forfinski-Sarko\\source\\repos\\QuickLookDEM'],
-             binaries=[],
-             datas=[],
-             hiddenimports=[
+import os
+from pathlib import Path
+from PyInstaller.utils.hooks import collect_data_files
+
+home = Path.home()
+
+cwd = Path.cwd()
+env_path = Path(os.environ['CONDA_PREFIX'])
+dlls = env_path / 'DLLs'
+bins = env_path / 'Library' / 'bin'
+
+paths = [
+    str(cwd),
+    str(env_path),
+    str(dlls),
+    str(bins),
+]
+
+binaries = [
+    (str(bins / 'geos.dll'), '.'),
+    (str(bins / 'geos_c.dll'), '.'),
+    (str(bins / 'spatialindex_c-64.dll'), '.'),
+    (str(bins / 'spatialindex-64.dll'), '.'),
+    (str(bins / 'pdal.exe'), '.')
+]
+
+proj_path = env_path / 'Library' / 'share' / 'proj'
+proj_datas = [
+    (str(proj_path / 'CH'), 'pyproj'),
+    (str(proj_path / 'GL27'), 'pyproj'),
+    (str(proj_path / 'ITRF2000'), 'pyproj'),
+    (str(proj_path / 'ITRF2008'), 'pyproj'),
+    (str(proj_path / 'ITRF2014'), 'pyproj'),
+    (str(proj_path / 'nad.lst'), 'pyproj'),
+    (str(proj_path / 'nad27'), 'pyproj'),
+    (str(proj_path / 'nad83'), 'pyproj'),
+    (str(proj_path / 'other.extra'), 'pyproj'),
+    (str(proj_path / 'proj.db'), 'pyproj'),
+    (str(proj_path / 'proj.ini'), 'pyproj'),
+    (str(proj_path / 'world'), 'pyproj')
+]
+
+datas = collect_data_files('rasterio', include_py_files=True) \
+		+ proj_datas
+
+hidden_imports = [
 			 'rasterio._shim', 
 			 'numpy.random.common', 
 			 'numpy.random.bounded_integers', 
@@ -15,7 +56,13 @@ a = Analysis(['quicklook.py'],
 			 'rasterio.crs', 
 			 'rasterio.sample', 
 			 'rasterio.vrt', 
-			 'rasterio._features'],
+			 'rasterio._features']
+
+a = Analysis(['quicklook.py'],
+             pathex=['C:\\Users\\Nick.Forfinski-Sarko\\source\\repos\\QuickLookDEM'],
+             binaries=[],
+             datas=proj_datas,
+             hiddenimports=hidden_imports,
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
