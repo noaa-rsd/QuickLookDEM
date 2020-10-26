@@ -2,12 +2,20 @@
 
 block_cipher = None
 
-
-a = Analysis(['qldem_gui.py'],
-             pathex=['C:\\Users\\Rodolfo.Troche\\Documents\\GitHub\\noaa-rsd\\QuickLookDEM'],
+a = Analysis(['quicklook.py'],
+             pathex=['C:\\Users\\Nick.Forfinski-Sarko\\source\\repos\\QuickLookDEM'],
              binaries=[],
              datas=[],
-             hiddenimports=['rasterio._shim', 'numpy.random.common', 'numpy.random.bounded_integers', 'numpy.random.entropy', 'rasterio.control', 'rasterio.crs', 'rasterio.sample', 'rasterio.vrt', 'rasterio._features'],
+             hiddenimports=[
+			 'rasterio._shim', 
+			 'numpy.random.common', 
+			 'numpy.random.bounded_integers', 
+			 'numpy.random.entropy', 
+			 'rasterio.control', 
+			 'rasterio.crs', 
+			 'rasterio.sample', 
+			 'rasterio.vrt', 
+			 'rasterio._features'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
@@ -21,7 +29,7 @@ exe = EXE(pyz,
           a.scripts,
           [],
           exclude_binaries=True,
-          name='qldem_gui',
+          name='QuickLook',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
@@ -34,4 +42,4 @@ coll = COLLECT(exe,
                strip=False,
                upx=True,
                upx_exclude=[],
-               name='qldem_gui')
+               name='QuickLook')

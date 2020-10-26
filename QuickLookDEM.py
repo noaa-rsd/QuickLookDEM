@@ -1,10 +1,11 @@
 import os
+import logging
 from pathlib import Path
-import pdal 
 import rasterio
 import rasterio.merge
+import multiprocessing as mp
+from PySimpleGUI import OneLineProgressMeter as progress
 from tqdm import tqdm
-import pathos.pools as pp
 
 
 class QuickLook:
@@ -41,31 +42,27 @@ class QuickLook:
         from pathlib import Path
 
         las_str = str(las_path).replace('\\', '/')
-        gtiff_path = Path(str(las_path).replace('.las', '_QL.tif'))
+        gtiff_path = Path(str(las_path).replace('.laz', '_QL.tif'))
         gtiff_path = str(gtiff_path).replace('\\', '/')
-        pdal_json = """{
-            "pipeline":[
-                {
-                    "type": "readers.las",
-                    "filename": """ + '"{}"'.format(las_str) + """
-                },
-                {
-                    "type":"filters.returns",
-                    "groups":"last,only"
-                },
-                {
-                    "type":"filters.range",
-                    "limits": "Classification[2:2],Classification[26:26]"
-                },
-                {
-                    "filename": """ + '"{}"'.format(gtiff_path) + """,
-                    "gdaldriver": "GTiff",
-                    "output_type": "mean",
-                    "resolution": "1.0",
-                    "type": "writers.gdal"
-                }
-            ]
-        }"""
+        pdal_json = f"""{{
+                    "pipeline":[
+                        {{
+                            "type": "readers.las",
+                            "filename": "{las_str}"
+                        }},
+                        {{
+                            "type":"filters.range",
+                            "limits": "Classification[40:40]"
+                        }},
+                        {{
+                            "filename": "{gtiff_path}",
+                            "gdaldriver": "GTiff",
+                            "output_type": "count",
+                            "resolution": "1.0",
+                            "type": "writers.gdal"
+                        }}
+                    ]
+                }}"""
 
         try:
             pipeline = pdal.Pipeline(pdal_json)
@@ -74,26 +71,24 @@ class QuickLook:
             print(e)
 
     def gen_mean_z_surface_multiprocess(self, las_paths, num_las_paths):
-        p = pp.ProcessPool(4)
-        for _ in tqdm(p.imap(self.gen_mean_z_surface, las_paths), 
+        p = mp.Pool(processes=4)
+        for _ in tqdm(p.imap_unordered(self.gen_mean_z_surface, las_paths), 
                       total=num_las_paths, ascii=True):
             pass
         p.close()
         p.join()
+   
 
+if __name__ == '__main__':
 
-def main():
+    las_dir = Path(r'S:\lidar\FL1806-TB-N\Block01\LAZ')
 
-    las_dir = Path(r'V:\FL1703\LIDAR\Classified_LAS')
-    las_paths = list(las_dir.glob('*.las'))
+    las_paths = list(las_dir.glob('*.laz'))
+    print(las_paths)
     num_las_paths = len(list(las_paths))
 
     ql = QuickLook()
-    ql.gen_mean_z_surface_multiprocess(las_paths, num_las_paths)
+    #ql.gen_mean_z_surface_multiprocess(las_paths, num_las_paths)
 
     quick_look_path = las_dir / 'QUICK_LOOK.tif'
     ql.gen_mosaic(las_dir, quick_look_path)
-        
-
-if __name__ == '__main__':
-    main()
