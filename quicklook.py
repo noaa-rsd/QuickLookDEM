@@ -1,3 +1,20 @@
+import sys
+
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    import os
+    from pathlib import Path
+    import pyproj
+    # logging.info('running in a PyInstaller bundle')
+    cwd = Path.cwd()
+    os.environ["PATH"] += os.pathsep + str(cwd)
+    gdal_data_path = cwd / 'Library' / 'share' / 'gdal'
+    proj_data_path = cwd / 'Library' / 'share' / 'proj'
+
+    os.environ["GDAL_DATA"] = str(gdal_data_path)
+    os.environ["GDAL_DATA"] = str(proj_data_path)
+
+    #pyproj.datadir.set_data_dir(str(cwd / "pyproj"))
+
 import os
 import subprocess
 import json
@@ -62,7 +79,8 @@ class QuickLook:
             crs_init = crs.to_dict()['init']
         except Exception as e:
             print(f'{las_path.name} {e}')
-        print(f'{las_path.name} {crs_init}')
+        print(f'{las_path.name}: {crs_init}')
+
         return crs_init, las_version
 
     def gen_mosaic(self, dem_dir, mosaic_path, vrts):
@@ -71,7 +89,7 @@ class QuickLook:
             mosaic, out_trans = rasterio.merge.merge(vrts)
             self.profile = vrts[0].profile
             self.profile.update({
-                'dtype': rasterio.uint8,
+                'dtype': rasterio.uint32,
                 'nodata': 0,
                 'driver': "GTiff",
                 'height': mosaic.shape[1],
@@ -82,7 +100,7 @@ class QuickLook:
             print(mosaic)
             try:
                 with rasterio.open(mosaic_path, 'w', **self.profile) as dest:
-                    dest.write(mosaic.astype(rasterio.uint8))
+                    dest.write(mosaic.astype(rasterio.uint32))
             except Exception as e:
                 print(e)
             finally:
@@ -176,7 +194,7 @@ def create_gui():
     bathy_classs = [26, 40]
 
     layout = [
-        [sg.Output(size=(140, 20))],
+        [sg.Output(size=(100, 20))],
         [sg.Text('Las directory:', size=(12, 1)), 
          sg.In(key='las_dir'), 
          sg.FolderBrowse()],

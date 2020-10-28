@@ -20,6 +20,9 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="hook.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="quicklook.py" />
     <Compile Include="QuickLookDEM.py" />
   </ItemGroup>

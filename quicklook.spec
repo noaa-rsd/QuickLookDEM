@@ -6,25 +6,23 @@ import os
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_data_files
 
-home = Path.home()
+hidden_imports = [
+			 'rasterio._shim', 
+			 'numpy.random.common', 
+			 'numpy.random.bounded_integers', 
+			 'numpy.random.entropy', 
+			 'rasterio.control',
+			 'rasterio.sample', 
+			 'rasterio.vrt', 
+			 'rasterio._features']
 
-cwd = Path.cwd()
 env_path = Path(os.environ['CONDA_PREFIX'])
-dlls = env_path / 'DLLs'
 bins = env_path / 'Library' / 'bin'
 
-paths = [
-    str(cwd),
-    str(env_path),
-    str(dlls),
-    str(bins),
-]
 
 binaries = [
     (str(bins / 'geos.dll'), '.'),
     (str(bins / 'geos_c.dll'), '.'),
-    (str(bins / 'spatialindex_c-64.dll'), '.'),
-    (str(bins / 'spatialindex-64.dll'), '.'),
     (str(bins / 'pdal.exe'), '.')
 ]
 
@@ -44,24 +42,13 @@ proj_datas = [
     (str(proj_path / 'world'), 'pyproj')
 ]
 
-datas = collect_data_files('rasterio', include_py_files=True) \
+datas = collect_data_files('pyproj') \
 		+ proj_datas
-
-hidden_imports = [
-			 'rasterio._shim', 
-			 'numpy.random.common', 
-			 'numpy.random.bounded_integers', 
-			 'numpy.random.entropy', 
-			 'rasterio.control', 
-			 'rasterio.crs', 
-			 'rasterio.sample', 
-			 'rasterio.vrt', 
-			 'rasterio._features']
 
 a = Analysis(['quicklook.py'],
              pathex=['C:\\Users\\Nick.Forfinski-Sarko\\source\\repos\\QuickLookDEM'],
-             binaries=[],
-             datas=proj_datas,
+             binaries=binaries,
+             datas=datas,
              hiddenimports=hidden_imports,
              hookspath=[],
              runtime_hooks=[],
@@ -70,8 +57,10 @@ a = Analysis(['quicklook.py'],
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
+			 
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
+			 
 exe = EXE(pyz,
           a.scripts,
           [],
@@ -82,6 +71,7 @@ exe = EXE(pyz,
           strip=False,
           upx=True,
           console=True )
+		  
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
