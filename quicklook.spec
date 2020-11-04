@@ -7,18 +7,27 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_data_files
 
 hidden_imports = [
-			 'rasterio._shim', 
-			 'numpy.random.common', 
-			 'numpy.random.bounded_integers', 
-			 'numpy.random.entropy', 
-			 'rasterio.control',
-			 'rasterio.sample', 
-			 'rasterio.vrt', 
-			 'rasterio._features']
+    'rasterio._shim',
+    'numpy.random.common',
+    'numpy.random.bounded_integers',
+    'numpy.random.entropy',
+    'rasterio.control',
+    'rasterio.sample',
+    'rasterio.vrt',
+    'rasterio._features',
+    'pyproj._datadir',
+    'pyproj.datadir']
 
+home = Path.home()
+cwd = Path.cwd()
 env_path = Path(os.environ['CONDA_PREFIX'])
 bins = env_path / 'Library' / 'bin'
 
+paths = [
+    str(cwd),
+    str(env_path),
+    str(bins),
+]
 
 binaries = [
     (str(bins / 'geos.dll'), '.'),
@@ -43,10 +52,10 @@ proj_datas = [
 ]
 
 datas = collect_data_files('pyproj') \
-		+ proj_datas
+        + proj_datas
 
 a = Analysis(['quicklook.py'],
-             pathex=['C:\\Users\\Nick.Forfinski-Sarko\\source\\repos\\QuickLookDEM'],
+             pathex=paths,
              binaries=binaries,
              datas=datas,
              hiddenimports=hidden_imports,
@@ -57,10 +66,10 @@ a = Analysis(['quicklook.py'],
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
-			 
+
 pyz = PYZ(a.pure, a.zipped_data,
-             cipher=block_cipher)
-			 
+          cipher=block_cipher)
+
 exe = EXE(pyz,
           a.scripts,
           [],
@@ -70,8 +79,8 @@ exe = EXE(pyz,
           bootloader_ignore_signals=False,
           strip=False,
           upx=True,
-          console=True )
-		  
+          console=True)
+
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
