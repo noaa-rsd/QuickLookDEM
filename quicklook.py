@@ -203,7 +203,7 @@ def create_gui():
         [sg.Button('EXIT')]
         ]
 
-    window = sg.Window('Quick Look (v1.0.0-rc1)', layout)
+    window = sg.Window('Quick Look (v1.0.0-rc3)', layout)
 
     return window
 
