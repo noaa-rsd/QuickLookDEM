@@ -73,15 +73,15 @@ class QuickLook:
         minor_version = meta_dict['metadata']['minor_version']
         las_version = f'{major_version}.{minor_version}'
 
-        crs_init = None
+        crs = None
         try:
             crs = CRS.from_string(hor_wkt)
             crs_init = crs.to_dict()['init']
+            print(f'{las_path.name}: {crs_init}')
         except Exception as e:
             print(f'{las_path.name} {e}')
-        print(f'{las_path.name}: {crs_init}')
 
-        return crs_init, las_version
+        return crs, las_version
 
     def gen_mosaic(self, dem_dir, mosaic_path, vrts):
         if vrts:
@@ -114,7 +114,7 @@ class QuickLook:
         import pdal
         from pathlib import Path
 
-        crs_init, las_version = self.get_las_info(las_path)
+        crs, las_version = self.get_las_info(las_path)
 
         bathy_classes = {
             '1.2': 26,
@@ -147,7 +147,7 @@ class QuickLook:
         try:
             pipeline = pdal.Pipeline(pdal_json)
             __ = pipeline.execute()
-            with rasterio.open(vrt_tiff, crs=crs_init) as src:
+            with rasterio.open(vrt_tiff, crs=crs) as src:
                 data = src.read()
                 profile = src.profile
             shared_dict[vrt_tiff] = [profile, data]

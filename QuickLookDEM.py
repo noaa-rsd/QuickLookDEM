@@ -81,14 +81,14 @@ class QuickLook:
 
 if __name__ == '__main__':
 
-    las_dir = Path(r'S:\lidar\FL1806-TB-N\Block01\LAZ')
+    las_dir = Path(r'X:\2018\FL1806\Lidar\TPU\Block02\TPU_LAS_no_mcu')
 
-    las_paths = list(las_dir.glob('*.laz'))
+    las_paths = list(las_dir.glob('*.las'))
     print(las_paths)
     num_las_paths = len(list(las_paths))
 
     ql = QuickLook()
-    #ql.gen_mean_z_surface_multiprocess(las_paths, num_las_paths)
+    ql.gen_mean_z_surface_multiprocess(las_paths, num_las_paths)
 
     quick_look_path = las_dir / 'QUICK_LOOK.tif'
     ql.gen_mosaic(las_dir, quick_look_path)

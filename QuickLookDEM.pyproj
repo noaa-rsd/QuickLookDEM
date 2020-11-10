@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{2987f8a8-f820-44b7-a34b-9d0ff6205185}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>QuickLookDEM.py</StartupFile>
+    <StartupFile>quicklook.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
