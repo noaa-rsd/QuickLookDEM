@@ -76,8 +76,7 @@ class QuickLook:
         crs = None
         try:
             crs = CRS.from_string(hor_wkt)
-            crs_init = crs.to_dict()['init']
-            print(f'{las_path.name}: {crs_init}')
+            print(f'{las_path.name}: {crs.to_proj4()}')
         except Exception as e:
             print(f'{las_path.name} {e}')
 
