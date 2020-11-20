@@ -43,6 +43,10 @@ class QuickLook:
     def __init__(self, val_to_grid):
         self.val_to_grid = val_to_grid
         self.profile = None
+        self.dtypes = {
+            'mean': rasterio.float64,
+            'count': rasterio.uint32
+            }
 
     @staticmethod
     def create_src(v):
@@ -88,7 +92,7 @@ class QuickLook:
             mosaic, out_trans = rasterio.merge.merge(vrts)
             self.profile = vrts[0].profile
             self.profile.update({
-                'dtype': rasterio.uint32,
+                'dtype': self.dtypes[self.val_to_grid],
                 'nodata': 0,
                 'driver': "GTiff",
                 'height': mosaic.shape[1],
@@ -99,7 +103,7 @@ class QuickLook:
             print(mosaic)
             try:
                 with rasterio.open(mosaic_path, 'w', **self.profile) as dest:
-                    dest.write(mosaic.astype(rasterio.uint32))
+                    dest.write(mosaic.astype(self.dtypes[self.val_to_grid]))
             except Exception as e:
                 print(e)
             finally:
@@ -171,7 +175,7 @@ class QuickLook:
 
 def create_quicklook(dir, val_to_grid):
     las_dir = Path(dir)
-    las_paths = list(las_dir.glob('*.las'))
+    las_paths = list(las_dir.glob('*.las'))[0:10]
     num_las = len(list(las_paths))
     if num_las <= 0:
         print("No las files found")
@@ -190,7 +194,6 @@ def create_quicklook(dir, val_to_grid):
 
 def create_gui():
     vals_to_grid = ['mean', 'count']
-    bathy_classs = [26, 40]
 
     layout = [
         [sg.Output(size=(100, 20))],

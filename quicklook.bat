@@ -15,7 +15,7 @@ IF NOT EXIST %anaconda_config% (
 for /f "delims= " %%x in (%anaconda_config%) do set anaconda_dir=%%x
 SET conda=%anaconda_dir%condabin\conda.bat
 SET env_dir=%anaconda_dir%envs
-SET quicklook_env_name=liprod
+SET quicklook_env_name=quicklook
 
 :: activate LiProd conda environment (create conda environment if it doesn't exist)
 ECHO "activating Quick Look conda environment..."
@@ -24,7 +24,7 @@ IF %ERRORLEVEL% == 0 (
 	%env_dir%\%quicklook_env_name%\python.exe %~dp0%quicklook.py
 ) ELSE (
 	ECHO "Oh nooo, a valid Quick-Look environment doesn't exist.  Let's create one..."
-	%conda% create --prefix %env_dir%\%quicklook_env_name% --file %~dp0%liprod_environment.txt
+	%conda% create --prefix %env_dir%\%quicklook_env_name% --file %~dp0%quicklook.env
 
 	ECHO "There, you've now got a Quick Look environment. (You won't have to do this part again...for this particular version)"
 	ECHO "activating environment..."
