@@ -45,7 +45,9 @@ class QuickLook:
         self.profile = None
         self.dtypes = {
             'mean': rasterio.float64,
-            'count': rasterio.uint32
+            'count': rasterio.uint32,
+            'total_thu': rasterio.float64,
+            'total_tvu': rasterio.float64
             }
 
     @staticmethod
@@ -127,28 +129,73 @@ class QuickLook:
         bathy_class = bathy_classes[las_version]
         las_str = str(las_path).replace('\\', '/')
         vrt_tiff = f"/vsimem/{las_path.stem}.tif"
-        pdal_json = f"""{{
-            "pipeline":[
-                {{
-                    "type": "readers.las",
-                    "filename": "{las_str}"
-                }},
-                {{
-                    "type": "filters.range",
-                    "limits": "Classification[{bathy_class}:{bathy_class}]"
-                }},
-                {{
-                    "filename": "{vrt_tiff}",
-                    "gdaldriver": "GTiff",
-                    "output_type": "{self.val_to_grid}",
-                    "resolution": "1.0",
-                    "type": "writers.gdal"
-                }}
-            ]
-        }}"""
+        #pdal_json = f"""{{
+        #    "pipeline":[
+        #        {{
+        #            "type": "readers.las",
+        #            "filename": "{las_str}"
+        #        }},
+        #        {{
+        #            "type": "filters.range",
+        #            "limits": "Classification[{bathy_class}:{bathy_class}]"
+        #        }},
+        #        {{
+        #            "filename": "{vrt_tiff}",
+        #            "gdaldriver": "GTiff",
+        #            "output_type": "{self.val_to_grid}",
+        #            "resolution": "1.0",
+        #            "type": "writers.gdal"
+        #        }}
+        #    ]
+        #}}"""
+
+        def get_pdal_json_tpu(vrt_tiff):
+            if self.val_to_grid in ['mean', 'count']:
+                return f"""{{
+                    "pipeline":[
+                        {{
+                            "type": "readers.las",
+                            "filename": "{las_str}"
+                        }},
+                        {{
+                            "type":"filters.range",
+                            "limits": "Classification[{bathy_class}:{bathy_class}]"
+                        }},
+                        {{
+                            "filename": "{vrt_tiff}",
+                            "gdaldriver": "GTiff",
+                            "output_type": "{self.val_to_grid}",
+                            "resolution": "1.0",
+                            "type": "writers.gdal"
+                        }}
+                    ]
+                }}"""
+            elif self.val_to_grid in ['total_thu', 'total_tvu']:
+                return f"""{{
+                    "pipeline":[
+                        {{
+                            "type": "readers.las",
+                            "filename": "{las_str}",
+                            "extra_dims": "{self.val_to_grid}=float",
+                            "use_eb_vlr": "true"
+                        }},
+                        {{
+                            "type":"filters.range",
+                            "limits": "Classification[{bathy_class}:{bathy_class}]"
+                        }},
+                        {{
+                            "filename": "{vrt_tiff}",
+                            "dimension": "{self.val_to_grid}",
+                            "gdaldriver": "GTiff",
+                            "output_type": "mean",
+                            "resolution": "1.0",
+                            "type": "writers.gdal"
+                        }}
+                    ]
+                }}"""
 
         try:
-            pipeline = pdal.Pipeline(pdal_json)
+            pipeline = pdal.Pipeline(get_pdal_json_tpu(vrt_tiff))
             __ = pipeline.execute()
             with rasterio.open(vrt_tiff, crs=crs) as src:
                 data = src.read()
@@ -193,7 +240,7 @@ def create_quicklook(dir, val_to_grid):
 
 
 def create_gui():
-    vals_to_grid = ['mean', 'count']
+    vals_to_grid = ['mean', 'count', 'total_thu', 'total_tvu']
 
     layout = [
         [sg.Output(size=(100, 20))],
